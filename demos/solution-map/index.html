@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="en-AU">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Solution Map</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: one panel per system in a responsive grid; nodes as tagged cards; an SVG layer draws links between cards. Select a card to trace what it feeds and what feeds it. */
+:root {
+  --bg: #f1f3f2;
+  --surface: #ffffff;
+  --surface-2: #f6f8f7;
+  --ink: #1b2420;
+  --ink-2: #5b6862;
+  --line: #d5dcd8;
+  --accent: #0f6b5c;
+  --accent-soft: #d8ece7;
+  --k-app: #2c63a8; --k-flow: #7a4fb0; --k-tool: #0f6b5c; --k-dash: #b0571c; --k-store: #59656e;
+  --k-excel: #2f7d3a; --k-doc: #8a7a2e; --k-external: #6c6c6c; --k-agent: #a23d6b;
+  --s-live: #2f7d3a; --s-testing: #2c63a8; --s-built: #0f6b5c; --s-design: #8a7a2e; --s-parked: #8b8b8b;
+  --s-blocked: #b23a2e; --s-superseded: #a5aaa7;
+  --edge: rgba(27, 36, 32, 0.16); --edge-hot: #0f6b5c; --edge-up: #b0571c;
+  --font-display: "Bahnschrift", "DIN Alternate", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-data: "Cascadia Mono", "Consolas", ui-monospace, monospace;
+  --radius: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111614; --surface: #1a211e; --surface-2: #202925; --ink: #e5ebe8; --ink-2: #94a39c; --line: #2c3632;
+    --accent: #3fb59c; --accent-soft: #173a32;
+    --k-app: #6b9fe0; --k-flow: #b08ae0; --k-tool: #3fb59c; --k-dash: #e2894b; --k-store: #9aa6ae;
+    --k-excel: #63b56e; --k-doc: #c9b55c; --k-external: #a0a0a0; --k-agent: #e07aa8;
+    --s-live: #63b56e; --s-testing: #6b9fe0; --s-built: #3fb59c; --s-design: #c9b55c; --s-parked: #8b8b8b;
+    --s-blocked: #e2685c; --s-superseded: #5d6460;
+    --edge: rgba(229, 235, 232, 0.14); --edge-hot: #3fb59c; --edge-up: #e2894b; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111614; --surface: #1a211e; --surface-2: #202925; --ink: #e5ebe8; --ink-2: #94a39c; --line: #2c3632;
+  --accent: #3fb59c; --accent-soft: #173a32;
+  --k-app: #6b9fe0; --k-flow: #b08ae0; --k-tool: #3fb59c; --k-dash: #e2894b; --k-store: #9aa6ae;
+  --k-excel: #63b56e; --k-doc: #c9b55c; --k-external: #a0a0a0; --k-agent: #e07aa8;
+  --s-live: #63b56e; --s-testing: #6b9fe0; --s-built: #3fb59c; --s-design: #c9b55c; --s-parked: #8b8b8b;
+  --s-blocked: #e2685c; --s-superseded: #5d6460;
+  --edge: rgba(229, 235, 232, 0.14); --edge-hot: #3fb59c; --edge-up: #e2894b; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 var(--font-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 14px 28px;
+}
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.top { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: flex-end; margin-bottom: 12px; }
+.brand { flex: 1 1 280px; min-width: 0; }
+.brand h1 { margin: 0; font: 600 28px/1.1 var(--font-display); letter-spacing: 0.01em; }
+.brand p { margin: 4px 0 0; color: var(--ink-2); font-size: 13px; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+input[type="search"], select { border: 1px solid var(--line); background: var(--surface); padding: 6px 10px; border-radius: var(--radius); }
+input[type="search"] { width: 220px; max-width: 100%; }
+.btn { border: 1px solid var(--line); background: var(--surface); padding: 6px 12px; border-radius: var(--radius); cursor: pointer; }
+.btn:hover { background: var(--surface-2); }
+.btn[aria-pressed="true"] { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+.stats { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--ink-2); margin-bottom: 12px; }
+.stats b { font: 600 13px var(--font-data); color: var(--ink); font-variant-numeric: tabular-nums; }
+
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 14px; align-items: start; }
+@media (max-width: 1100px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+
+.mapwrap { position: relative; min-width: 0; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; position: relative; z-index: 1; }
+.sys { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px 12px; min-width: 0; }
+.sys-head { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; margin-bottom: 8px; }
+.sys-head h2 { margin: 0; font: 600 15px var(--font-display); letter-spacing: 0.02em; }
+.sys-head span { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-2); }
+.nodes { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.node {
+  display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 6px; align-items: center;
+  padding: 5px 8px 5px 6px; border-radius: 4px; border: 1px solid var(--line); background: var(--surface-2);
+  cursor: pointer; text-align: left; max-width: 100%; font-size: 12.5px; position: relative;
+}
+.node:hover { border-color: var(--ink-2); }
+.node .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.node .st { position: absolute; top: -3px; right: -3px; width: 8px; height: 8px; border-radius: 50%; background: var(--sc); border: 2px solid var(--surface); }
+.node.dim { opacity: 0.25; }
+.node.sel { border-color: var(--edge-hot); box-shadow: 0 0 0 2px var(--edge-hot); background: var(--accent-soft); }
+.node.down { border-color: var(--edge-hot); }
+.node.up { border-color: var(--edge-up); }
+.node.status-superseded .nm, .node.status-parked .nm { color: var(--ink-2); }
+.node.status-blocked .nm { text-decoration: underline wavy var(--s-blocked); text-underline-offset: 3px; }
+
+/* Kind glyphs: shapes that echo what each thing is */
+.g { width: 16px; height: 16px; display: block; color: var(--kc); }
+
+svg.links { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; overflow: visible; }
+svg.links path { fill: none; stroke: var(--edge); stroke-width: 1.3; }
+svg.links path.planned { stroke-dasharray: 4 4; }
+svg.links path.hot { stroke: var(--edge-hot); stroke-width: 2; }
+svg.links path.hot-up { stroke: var(--edge-up); stroke-width: 2; }
+svg.links.hide path:not(.hot):not(.hot-up) { display: none; }
+
+/* Detail panel */
+.detail { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; position: sticky; top: calc(12px + env(safe-area-inset-top, 0px)); max-height: calc(100vh - 24px); overflow: auto; min-width: 0; }
+.detail .empty { color: var(--ink-2); }
+.detail .empty h2 { color: var(--ink); }
+.detail h2 { margin: 6px 0 2px; font: 600 20px/1.2 var(--font-display); text-wrap: balance; }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag { font: 600 10.5px var(--font-display); letter-spacing: 0.08em; text-transform: uppercase; padding: 2px 7px; border-radius: 3px; color: #fff; background: var(--c); }
+.tag.ghost { color: var(--ink-2); background: transparent; border: 1px solid var(--line); }
+.detail p { margin: 10px 0; }
+.meta { font-size: 12px; color: var(--ink-2); display: grid; gap: 2px; }
+.meta .mono { font-family: var(--font-data); }
+.rel h3 { font: 600 11px var(--font-display); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-2); margin: 14px 0 6px; }
+.rel ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.rel li button { all: unset; cursor: pointer; display: flex; gap: 6px; align-items: baseline; font-size: 13px; }
+.rel li button:hover .n { text-decoration: underline; }
+.rel li button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.rel .via { font-size: 11px; color: var(--ink-2); font-family: var(--font-data); }
+.rel .arrow { color: var(--edge-hot); font-family: var(--font-data); }
+.rel .arrow.up { color: var(--edge-up); }
+.impact { margin-top: 14px; padding: 10px 12px; border-radius: var(--radius); background: var(--accent-soft); font-size: 13px; }
+.impact b { font-family: var(--font-data); }
+
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 14px; font-size: 12px; color: var(--ink-2); }
+.legend span { display: inline-flex; gap: 6px; align-items: center; }
+.legend .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--sc); display: inline-block; }
+.legend .ln { width: 22px; height: 0; border-top: 2px solid var(--edge-hot); display: inline-block; }
+.legend .ln.up { border-color: var(--edge-up); }
+.legend .ln.pl { border-top-style: dashed; border-color: var(--ink-2); }
+
+@media (max-width: 600px) {
+  .brand h1 { font-size: 22px; }
+  .grid { grid-template-columns: minmax(0, 1fr); }
+  .detail { position: static; max-height: none; }
+}
+@media (prefers-reduced-motion: no-preference) { .node { transition: opacity 0.15s, border-color 0.15s; } }
+</style>
+
+<header class="top">
+  <div class="brand">
+    <h1>Solution Map</h1>
+    <p id="subtitle">Demo: the architecture behind a set of internal tools, with generic names. Click anything to trace what it feeds.</p>
+  </div>
+  <div class="controls">
+    <input type="search" id="q" placeholder="Search names and notes" aria-label="Search">
+    <select id="fDept" aria-label="Department"></select>
+    <select id="fStatus" aria-label="Status"></select>
+    <button class="btn" id="btnLinks" aria-pressed="true" title="Show every link, or only the selected item's links">All links</button>
+    <button class="btn" id="btnTheme" title="Switch light or dark">Theme</button>
+  </div>
+</header>
+
+<div class="stats" id="stats"></div>
+
+<div class="layout">
+  <div class="mapwrap" id="mapwrap">
+    <svg class="links" id="links" aria-hidden="true"></svg>
+    <div class="grid" id="grid"></div>
+  </div>
+  <aside class="detail" id="detail" aria-live="polite"></aside>
+</div>
+
+<script>window.SOLMAP = { systems: [], nodes: [], edges: [] };</script>
+<script src="data/solutions.js"></script>
+
+<script>
+(() => {
+  'use strict';
+  const M = window.SOLMAP;
+  const KINDS = {
+    app:      { label: 'Power App',   c: '--k-app' },
+    flow:     { label: 'Flow',        c: '--k-flow' },
+    tool:     { label: 'HTML tool',   c: '--k-tool' },
+    dash:     { label: 'Dashboard',   c: '--k-dash' },
+    store:    { label: 'Data store',  c: '--k-store' },
+    excel:    { label: 'Excel',       c: '--k-excel' },
+    doc:      { label: 'Document',    c: '--k-doc' },
+    external: { label: 'External',    c: '--k-external' },
+    agent:    { label: 'AI agent',    c: '--k-agent' }
+  };
+  const KIND_ORDER = ['external', 'excel', 'store', 'flow', 'app', 'tool', 'dash', 'agent', 'doc'];
+  const STATUSES = ['live', 'testing', 'built', 'design', 'parked', 'blocked', 'superseded'];
+  const EDGE_VERB = { data: 'data', triggers: 'triggers', launches: 'opens', feeds: 'hand-off', planned: 'planned' };
+
+  // Glyphs: app = window, flow = diamond, tool = bracket page, dash = bars, store = cylinder, excel = grid, doc = page, external = cloud-ish, agent = spark
+  const GLYPH = {
+    app: '<rect x="2" y="3" width="12" height="10" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M2 6h12" stroke="currentColor" stroke-width="1.6"/>',
+    flow: '<path d="M8 1.8 14.2 8 8 14.2 1.8 8Z" fill="none" stroke="currentColor" stroke-width="1.6"/>',
+    tool: '<path d="M5 3H3v10h2M11 3h2v10h-2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M7 6l-1.5 2L7 10M9 6l1.5 2L9 10" fill="none" stroke="currentColor" stroke-width="1.3"/>',
+    dash: '<path d="M3 13V8M8 13V4M13 13V6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>',
+    store: '<ellipse cx="8" cy="4" rx="5" ry="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4" fill="none" stroke="currentColor" stroke-width="1.5"/>',
+    excel: '<rect x="2.5" y="2.5" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M2.5 6.5h11M2.5 10h11M6.5 2.5v11" stroke="currentColor" stroke-width="1.2"/>',
+    doc: '<path d="M4 2h5l3 3v9H4Z" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M6 8h4M6 10.5h4" stroke="currentColor" stroke-width="1.2"/>',
+    external: '<circle cx="8" cy="8" r="5.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2.5 1.8"/>',
+    agent: '<path d="M8 2l1.6 4.4L14 8l-4.4 1.6L8 14l-1.6-4.4L2 8l4.4-1.6Z" fill="none" stroke="currentColor" stroke-width="1.4"/>'
+  };
+
+  const byId = Object.fromEntries(M.nodes.map(n => [n.id, n]));
+  const sysById = Object.fromEntries(M.systems.map(s => [s.id, s]));
+  const edges = M.edges.filter(e => byId[e.from] && byId[e.to]);
+  const out = {}, inn = {};
+  edges.forEach(e => { (out[e.from] = out[e.from] || []).push(e); (inn[e.to] = inn[e.to] || []).push(e); });
+
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch { /* ignore */ } }
+  };
+  const state = { q: '', dept: '', status: '', sel: null, allLinks: store.get('sm:links') !== 'off' };
+
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const glyph = k => '<svg class="g" viewBox="0 0 16 16" aria-hidden="true" style="--kc:var(' + (KINDS[k] || KINDS.store).c + ')">' + (GLYPH[k] || GLYPH.store) + '</svg>';
+
+  // Downstream closure: everything that could be affected if this changes
+  function downstream(id) {
+    const seen = new Set(), stack = [id];
+    while (stack.length) {
+      const x = stack.pop();
+      (out[x] || []).forEach(e => { if (e.kind !== 'planned' && !seen.has(e.to) && e.to !== id) { seen.add(e.to); stack.push(e.to); } });
+    }
+    return seen;
+  }
+
+  const matches = n => {
+    const sys = sysById[n.system] || {};
+    if (state.dept && sys.dept !== state.dept) return false;
+    if (state.status && n.status !== state.status) return false;
+    if (state.q) {
+      const hay = (n.name + ' ' + (n.summary || '') + ' ' + (n.where || '') + ' ' + (n.tech || '') + ' ' + n.id).toLowerCase();
+      if (!hay.includes(state.q)) return false;
+    }
+    return true;
+  };
+
+  function renderStats() {
+    const count = s => M.nodes.filter(n => n.status === s).length;
+    document.getElementById('stats').innerHTML =
+      '<span><b>' + M.systems.length + '</b> systems</span>' +
+      '<span><b>' + M.nodes.length + '</b> components</span>' +
+      '<span><b>' + edges.length + '</b> links</span>' +
+      STATUSES.map(s => count(s) ? '<span><b>' + count(s) + '</b> ' + s + '</span>' : '').join('') +
+      '<span>Updated <b>' + esc(M.updated || '') + '</b></span>';
+  }
+
+  function renderGrid() {
+    const grid = document.getElementById('grid');
+    const sel = state.sel;
+    const down = sel ? new Set((out[sel] || []).map(e => e.to)) : new Set();
+    const up = sel ? new Set((inn[sel] || []).map(e => e.from)) : new Set();
+    grid.innerHTML = M.systems.map(s => {
+      const nodes = M.nodes.filter(n => n.system === s.id)
+        .sort((a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind));
+      if (!nodes.some(matches) && (state.q || state.dept || state.status)) return '';
+      return '<section class="sys"><div class="sys-head"><h2>' + esc(s.name) + '</h2><span>' + esc(s.dept) + '</span></div><div class="nodes">' +
+        nodes.map(n => {
+          const cls = ['node', 'status-' + n.status,
+            sel && n.id === sel && 'sel', down.has(n.id) && 'down', up.has(n.id) && 'up',
+            ((sel && n.id !== sel && !down.has(n.id) && !up.has(n.id)) || !matches(n)) && 'dim'].filter(Boolean).join(' ');
+          return '<button class="' + cls + '" data-id="' + n.id + '" title="' + esc((KINDS[n.kind] || {}).label + ' · ' + n.status) + '">' +
+            glyph(n.kind) + '<span class="nm">' + esc(n.name) + '</span><i class="st" style="--sc:var(--s-' + n.status + ')"></i></button>';
+        }).join('') + '</div></section>';
+    }).join('');
+    requestAnimationFrame(drawLinks);
+  }
+
+  function drawLinks() {
+    const svg = document.getElementById('links');
+    const wrap = document.getElementById('mapwrap').getBoundingClientRect();
+    const rect = id => { const el = document.querySelector('.node[data-id="' + id + '"]'); return el ? el.getBoundingClientRect() : null; };
+    svg.classList.toggle('hide', !state.allLinks);
+    let html = '';
+    edges.forEach(e => {
+      const a = rect(e.from), b = rect(e.to);
+      if (!a || !b) return;
+      const ax = a.left + a.width / 2 - wrap.left, ay = a.top + a.height / 2 - wrap.top;
+      const bx = b.left + b.width / 2 - wrap.left, by = b.top + b.height / 2 - wrap.top;
+      // Leave from the facing edge of each card
+      const sx = bx >= ax ? a.right - wrap.left : a.left - wrap.left;
+      const tx = bx >= ax ? b.left - wrap.left : b.right - wrap.left;
+      const dx = Math.max(30, Math.abs(tx - sx) * 0.4);
+      const c1 = sx + (bx >= ax ? dx : -dx), c2 = tx + (bx >= ax ? -dx : dx);
+      const cls = [e.kind === 'planned' && 'planned',
+        state.sel && e.from === state.sel && 'hot',
+        state.sel && e.to === state.sel && 'hot-up'].filter(Boolean).join(' ');
+      html += '<path class="' + cls + '" d="M' + sx + ',' + ay + ' C' + c1 + ',' + ay + ' ' + c2 + ',' + by + ' ' + tx + ',' + by + '"/>';
+    });
+    svg.innerHTML = html;
+  }
+
+  function relItem(e, dir) {
+    const other = byId[dir === 'down' ? e.to : e.from];
+    return '<li><button data-id="' + other.id + '"><span class="arrow' + (dir === 'up' ? ' up' : '') + '">' + (dir === 'down' ? '→' : '←') + '</span>' +
+      '<span class="n">' + esc(other.name) + '</span><span class="via">' + esc(EDGE_VERB[e.kind] + (e.label ? ': ' + e.label : '')) + '</span></button></li>';
+  }
+
+  function renderDetail() {
+    const el = document.getElementById('detail');
+    const n = state.sel && byId[state.sel];
+    if (!n) {
+      el.innerHTML = '<div class="empty"><h2>Pick anything on the map</h2><p>Select a card to see what feeds it, what it feeds, and everything downstream that could break if it changes.</p></div>' + legend();
+      return;
+    }
+    const sys = sysById[n.system] || {};
+    const k = KINDS[n.kind] || KINDS.store;
+    const ups = inn[n.id] || [], downs = out[n.id] || [];
+    const impact = downstream(n.id);
+    el.innerHTML =
+      '<div class="tags"><span class="tag" style="--c:var(' + k.c + ')">' + k.label + '</span>' +
+      '<span class="tag" style="--c:var(--s-' + n.status + ')">' + esc(n.status) + '</span>' +
+      '<span class="tag ghost">' + esc(sys.name || '') + '</span></div>' +
+      '<h2>' + esc(n.name) + '</h2>' +
+      '<p>' + esc(n.summary || '') + '</p>' +
+      '<div class="meta">' +
+      (n.where ? '<span>Where: ' + esc(n.where) + '</span>' : '') +
+      (n.tech ? '<span>Built with: ' + esc(n.tech) + '</span>' : '') +
+      '<span class="mono">id: ' + esc(n.id) + '</span></div>' +
+      '<div class="rel"><h3>Fed by (' + ups.length + ')</h3>' + (ups.length ? '<ul>' + ups.map(e => relItem(e, 'up')).join('') + '</ul>' : '<span class="meta">Nothing upstream.</span>') +
+      '<h3>Feeds (' + downs.length + ')</h3>' + (downs.length ? '<ul>' + downs.map(e => relItem(e, 'down')).join('') + '</ul>' : '<span class="meta">Nothing downstream.</span>') + '</div>' +
+      (impact.size ? '<div class="impact">If this changes, check <b>' + impact.size + '</b> downstream item' + (impact.size === 1 ? '' : 's') + ': ' +
+        [...impact].map(id => esc(byId[id].name)).join(', ') + '.</div>' : '') +
+      legend();
+  }
+
+  function legend() {
+    return '<div class="legend">' +
+      Object.entries(KINDS).map(([k, v]) => '<span>' + glyph(k) + v.label + '</span>').join('') +
+      STATUSES.map(s => '<span><i class="dot" style="--sc:var(--s-' + s + ')"></i>' + s + '</span>').join('') +
+      '<span><i class="ln"></i>feeds</span><span><i class="ln up"></i>fed by</span><span><i class="ln pl"></i>planned</span></div>';
+  }
+
+  function select(id) {
+    state.sel = state.sel === id ? null : id;
+    renderGrid();
+    renderDetail();
+  }
+
+  // Filters
+  const depts = [...new Set(M.systems.map(s => s.dept))];
+  document.getElementById('fDept').innerHTML = '<option value="">All departments</option>' + depts.map(d => '<option>' + esc(d) + '</option>').join('');
+  document.getElementById('fStatus').innerHTML = '<option value="">All statuses</option>' + STATUSES.map(s => '<option>' + s + '</option>').join('');
+  document.getElementById('q').addEventListener('input', e => { state.q = e.target.value.trim().toLowerCase(); renderGrid(); });
+  document.getElementById('fDept').onchange = e => { state.dept = e.target.value; renderGrid(); };
+  document.getElementById('fStatus').onchange = e => { state.status = e.target.value; renderGrid(); };
+  const btnLinks = document.getElementById('btnLinks');
+  const syncLinksBtn = () => { btnLinks.setAttribute('aria-pressed', String(state.allLinks)); btnLinks.textContent = state.allLinks ? 'All links' : 'Selected links'; };
+  btnLinks.onclick = () => { state.allLinks = !state.allLinks; store.set('sm:links', state.allLinks ? 'on' : 'off'); syncLinksBtn(); drawLinks(); };
+  syncLinksBtn();
+
+  document.addEventListener('click', e => {
+    const t = e.target.closest('[data-id]');
+    if (t) select(t.dataset.id);
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && state.sel) select(state.sel); });
+
+  const themeKey = 'sm:theme';
+  const saved = store.get(themeKey);
+  if (saved) document.documentElement.setAttribute('data-theme', saved);
+  document.getElementById('btnTheme').onclick = () => {
+    const cur = document.documentElement.getAttribute('data-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    const next = cur === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    store.set(themeKey, next);
+  };
+
+  let rt;
+  window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawLinks, 80); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(drawLinks);
+
+  renderStats();
+  renderGrid();
+  renderDetail();
+})();
+</script>

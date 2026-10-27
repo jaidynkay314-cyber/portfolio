@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en-AU">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Jaidyn Kay · Tools</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Internal tools and systems built for an industrial equipment supplier: quoting, quality, field service, engineering drawings. Live demos with made-up data.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a sheet like an engineering drawing. Title block up top, then live demos, then the build register, then working rules. */
+:root {
+  --paper: #f3f5f4;
+  --sheet: #ffffff;
+  --ink: #16201d;
+  --ink-2: #56635e;
+  --rule: #cbd3cf;
+  --accent: #00677f;
+  --accent-ink: #ffffff;
+  --mark: #f2c230;
+  --mark-ink: #1d1a0c;
+  --live: #2f7d3a;
+  --test: #2c63a8;
+  --plan: #8a7a2e;
+  --font-display: "Barlow Condensed", "Bahnschrift", "Arial Narrow", sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-data: "IBM Plex Mono", "Consolas", ui-monospace, monospace;
+  --measure: 66ch;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0f1513; --sheet: #161e1b; --ink: #e4ebe8; --ink-2: #93a29c; --rule: #2b3632;
+    --accent: #4fb3cc; --accent-ink: #08181d; --mark: #f2c230; --mark-ink: #1d1a0c;
+    --live: #63b56e; --test: #6b9fe0; --plan: #c9b55c; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0f1513; --sheet: #161e1b; --ink: #e4ebe8; --ink-2: #93a29c; --rule: #2b3632;
+  --accent: #4fb3cc; --accent-ink: #08181d; --mark: #f2c230; --mark-ink: #1d1a0c;
+  --live: #63b56e; --test: #6b9fe0; --plan: #c9b55c; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font: 16px/1.6 var(--font-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 24px 48px;
+}
+a { color: var(--accent); }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.sheet { max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 56px; }
+
+/* Hero + title block */
+.hero { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 32px; align-items: end; border-bottom: 2px solid var(--ink); padding-bottom: 28px; }
+@media (max-width: 820px) { .hero { grid-template-columns: minmax(0, 1fr); } }
+.eyebrow { font: 600 13px var(--font-display); letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); }
+.hero h1 { margin: 8px 0 14px; font: 700 clamp(44px, 7vw, 84px)/0.92 var(--font-display); letter-spacing: -0.005em; text-wrap: balance; }
+.hero p { margin: 0; max-width: var(--measure); color: var(--ink-2); font-size: 17px; }
+
+.titleblock { border: 2px solid var(--ink); background: var(--sheet); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); font-family: var(--font-data); font-size: 12.5px; }
+.titleblock div { padding: 8px 10px; border-right: 1px solid var(--ink); border-bottom: 1px solid var(--ink); min-width: 0; }
+.titleblock div:nth-child(2n) { border-right: 0; }
+.titleblock div:nth-last-child(-n+2) { border-bottom: 0; }
+.titleblock .wide { grid-column: 1 / -1; border-right: 0; }
+.titleblock span { display: block; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-2); }
+.titleblock b { font-weight: 500; overflow-wrap: anywhere; }
+
+/* Section headings */
+.sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+.sec-head h2 { margin: 0; font: 600 34px/1 var(--font-display); letter-spacing: 0.01em; }
+.sec-head p { margin: 0; color: var(--ink-2); font-size: 14px; max-width: 52ch; }
+
+/* Live demos */
+.demos { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+.demo { background: var(--sheet); border: 1px solid var(--rule); display: flex; flex-direction: column; min-width: 0; text-decoration: none; color: inherit; }
+.demo:hover { border-color: var(--accent); }
+.demo:hover .open { background: var(--accent); color: var(--accent-ink); }
+.preview { aspect-ratio: 16 / 7; max-width: 100%; border-bottom: 1px solid var(--rule); background: var(--paper); position: relative; overflow: hidden; }
+.preview svg { width: 100%; height: 100%; display: block; }
+.demo-body { padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.demo h3 { margin: 0; font: 600 24px/1.1 var(--font-display); }
+.demo p { margin: 0; color: var(--ink-2); font-size: 15px; }
+.demo .open { margin-top: auto; align-self: flex-start; font: 600 14px var(--font-display); letter-spacing: 0.08em; text-transform: uppercase; border: 1.5px solid var(--accent); color: var(--accent); padding: 6px 12px; }
+
+/* Build register: a table on wide screens, cards on narrow */
+.register { background: var(--sheet); border: 1px solid var(--rule); }
+.row { display: grid; grid-template-columns: 52px minmax(0, 1.1fr) minmax(0, 1.6fr) minmax(0, 0.9fr) 96px; gap: 16px; padding: 16px 18px; border-bottom: 1px solid var(--rule); align-items: start; }
+.row:last-child { border-bottom: 0; }
+.row.head { font: 600 11px var(--font-display); letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-2); padding-block: 10px; background: var(--paper); }
+.row .no { font: 500 13px var(--font-data); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.row h3 { margin: 0 0 4px; font: 600 20px/1.15 var(--font-display); }
+.row .dept { font-size: 12px; color: var(--ink-2); text-transform: uppercase; letter-spacing: 0.08em; }
+.row p { margin: 0; font-size: 14.5px; }
+.row .problem { color: var(--ink-2); margin-bottom: 6px; }
+.stack { font: 12px/1.5 var(--font-data); color: var(--ink-2); }
+.status { font: 600 11px var(--font-display); letter-spacing: 0.1em; text-transform: uppercase; display: inline-flex; align-items: center; gap: 6px; }
+.status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--c); }
+.demo-tag { display: inline-block; margin-top: 6px; font: 600 11px var(--font-display); letter-spacing: 0.1em; text-transform: uppercase; background: var(--mark); color: var(--mark-ink); padding: 2px 6px; text-decoration: none; }
+@media (max-width: 860px) {
+  .row { grid-template-columns: 40px minmax(0, 1fr); }
+  .row.head { display: none; }
+  .row > :nth-child(n+3) { grid-column: 2; }
+}
+
+/* Rules */
+.rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0; border-top: 2px solid var(--ink); }
+.rule { padding: 18px 20px 20px 0; border-bottom: 1px solid var(--rule); }
+.rule h3 { margin: 0 0 6px; font: 600 21px/1.15 var(--font-display); }
+.rule p { margin: 0; color: var(--ink-2); font-size: 15px; max-width: 40ch; }
+
+footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; border-top: 1px solid var(--rule); padding-top: 16px; font-size: 13px; color: var(--ink-2); }
+footer .mono { font-family: var(--font-data); }
+.themebtn { background: none; border: 1px solid var(--rule); color: var(--ink-2); font: 12px var(--font-data); padding: 4px 10px; cursor: pointer; }
+</style>
+
+<main class="sheet">
+
+  <header class="hero">
+    <div>
+      <div class="eyebrow">Internal tools · industrial equipment</div>
+      <h1>Jaidyn Kay</h1>
+      <p>Engineering student working in estimating at an oil and gas wellhead equipment supplier. I'm not hired to code, but I keep ending up building the tools my teams use every day: quoting, quality, field service scheduling and drawing search. These are some of them, with demos running on made-up data.</p>
+    </div>
+    <div class="titleblock" aria-label="Summary">
+      <div><span>Drawn by</span><b>J. Kay</b></div>
+      <div><span>Discipline</span><b>Engineering student</b></div>
+      <div class="wide"><span>Industry</span><b>Oil &amp; gas wellhead equipment</b></div>
+      <div><span>Builds</span><b id="buildCount">9</b></div>
+      <div><span>Live demos</span><b>2</b></div>
+      <div><span>Stack</span><b>Power Platform · HTML/JS</b></div>
+      <div><span>Rev</span><b>2026-10</b></div>
+    </div>
+  </header>
+
+  <section>
+    <div class="sec-head">
+      <h2>Live demos</h2>
+      <p>Same code as the real tools, fake data, nothing to install.</p>
+    </div>
+    <div class="demos">
+      <a class="demo" href="demos/job-board/">
+        <div class="preview" aria-hidden="true">
+          <svg viewBox="0 0 640 280" preserveAspectRatio="xMidYMid slice">
+            <rect width="640" height="280" fill="var(--paper)"/>
+            <g stroke="var(--rule)" stroke-width="1">
+              <line x1="0" y1="56" x2="640" y2="56"/><line x1="0" y1="112" x2="640" y2="112"/><line x1="0" y1="168" x2="640" y2="168"/><line x1="0" y1="224" x2="640" y2="224"/>
+              <line x1="120" y1="0" x2="120" y2="280"/>
+            </g>
+            <line x1="236" y1="0" x2="236" y2="280" stroke="#c0392b" stroke-width="2" opacity="0.7"/>
+            <g font-family="IBM Plex Mono, monospace" font-size="12" fill="var(--ink-2)">
+              <text x="14" y="34">M. Hollis</text><text x="14" y="90">D. Pereira</text><text x="14" y="146">S. Kowalski</text><text x="14" y="202">T. Rawiri</text><text x="14" y="258">Unallocated</text>
+            </g>
+            <rect x="140" y="18" width="80" height="24" rx="3" fill="#2e8b3e" opacity="0.55"/>
+            <rect x="280" y="18" width="70" height="24" rx="3" fill="#138a7e"/>
+            <rect x="330" y="30" width="110" height="20" rx="3" fill="#138a7e" stroke="#c0392b" stroke-width="2"/>
+            <rect x="300" y="74" width="150" height="24" rx="3" fill="#138a7e"/>
+            <rect x="200" y="130" width="90" height="24" rx="3" fill="#2e8b3e"/>
+            <rect x="250" y="138" width="90" height="16" rx="3" fill="#138a7e" stroke="#c0392b" stroke-width="2"/>
+            <rect x="210" y="186" width="60" height="24" rx="3" fill="#2e8b3e"/>
+            <rect x="380" y="186" width="40" height="24" rx="3" fill="#138a7e"/>
+            <rect x="300" y="242" width="80" height="24" rx="3" fill="#138a7e" stroke="#d68910" stroke-width="2.5"/>
+            <rect x="420" y="242" width="180" height="24" rx="3" fill="#2f74b5" fill-opacity="0.18" stroke="#2f74b5" stroke-dasharray="5 4"/>
+          </svg>
+        </div>
+        <div class="demo-body">
+          <h3>Field Service Job Board</h3>
+          <p>Wall-screen view of every field job: crew timeline with double-booking and no-crew flags, month calendar, and jobs still waiting on a firm date. Fed by a nightly snapshot.</p>
+          <span class="open">Open demo</span>
+        </div>
+      </a>
+      <a class="demo" href="demos/solution-map/">
+        <div class="preview" aria-hidden="true">
+          <svg viewBox="0 0 640 280" preserveAspectRatio="xMidYMid slice">
+            <rect width="640" height="280" fill="var(--paper)"/>
+            <g fill="var(--sheet)" stroke="var(--rule)">
+              <rect x="24" y="24" width="180" height="110"/><rect x="230" y="24" width="180" height="110"/><rect x="436" y="24" width="180" height="110"/>
+              <rect x="24" y="152" width="180" height="104"/><rect x="230" y="152" width="180" height="104"/><rect x="436" y="152" width="180" height="104"/>
+            </g>
+            <g fill="none" stroke="var(--accent)" stroke-width="2">
+              <path d="M150 70 C 210 70, 230 60, 270 60"/><path d="M360 60 C 420 60, 430 90, 470 90"/><path d="M110 110 C 110 170, 250 180, 280 200"/>
+            </g>
+            <g fill="none" stroke="#b0571c" stroke-width="2"><path d="M500 200 C 440 200, 420 110, 380 100"/></g>
+            <g fill="var(--paper)" stroke="var(--ink-2)">
+              <rect x="40" y="58" width="110" height="22" rx="3"/><rect x="40" y="98" width="80" height="22" rx="3"/>
+              <rect x="270" y="48" width="90" height="22" rx="3" stroke="var(--accent)" stroke-width="2.5"/><rect x="250" y="88" width="130" height="22" rx="3"/>
+              <rect x="470" y="78" width="100" height="22" rx="3"/><rect x="280" y="188" width="100" height="22" rx="3"/><rect x="460" y="188" width="120" height="22" rx="3"/>
+            </g>
+          </svg>
+        </div>
+        <div class="demo-body">
+          <h3>Solution Map</h3>
+          <p>Interactive map of the apps, flows, lists and tools behind these builds. Click anything to see what feeds it, what it feeds, and what breaks downstream if it changes.</p>
+          <span class="open">Open demo</span>
+        </div>
+      </a>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>Build register</h2>
+      <p>What each one replaced, what it does now. Demos are added as each tool gets a fake-data version.</p>
+    </div>
+    <div class="register" id="register">
+      <div class="row head"><span>No.</span><span>Build</span><span>Problem and solution</span><span>Built with</span><span>Status</span></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>How I build</h2>
+      <p>Rules learnt the hard way, written down so every new build starts from them.</p>
+    </div>
+    <div class="rules">
+      <div class="rule"><h3>Inform, never block</h3><p>Checks show up as warnings; the person doing the work decides. Hard lockouts over typos are what made the old systems hated.</p></div>
+      <div class="rule"><h3>No silent failures</h3><p>Every hand-off that matters is locked and polled until it's confirmed. Nobody walks away thinking a quote was filed when it wasn't.</p></div>
+      <div class="rule"><h3>Works offline, installs nothing</h3><p>Locked-down work PCs can't install software, so the tools are single HTML files that open from a synced folder.</p></div>
+      <div class="rule"><h3>Useful before mandatory</h3><p>Adoption is won by being better than the spreadsheet. Analytics stay off the daily screens so nobody feels watched.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    <span>All demos use made-up customers, sites, people and prices. No company data is published here.</span>
+    <span><button class="themebtn" id="btnTheme">Theme</button></span>
+  </footer>
+</main>
+
+<script>
+(() => {
+  'use strict';
+  const BUILDS = [
+    { name: 'Quote builder', dept: 'Estimating', status: 'live',
+      problem: 'Customer quotes came out of the ERP looking dated, and per-line prices were trapped in spreadsheets.',
+      solution: 'Offline single-file HTML tool producing customer quote PDFs from a costing import, with grouped product, rental and service pricing, an archive with search, and price history. Exports line data for the tracking system.',
+      stack: 'HTML/JS, SheetJS, pdf.js (embedded), File System Access API' },
+    { name: 'Quote tracking system', dept: 'Estimating', status: 'testing',
+      problem: 'Quote requests, approvals and revisions ran on email and memory. Sign-offs were missed.',
+      solution: 'Canvas app with four roles, sequential numbering, gated and polled hand-offs, a sales-then-commercial approval cycle, revision families and automatic email filing. A price check flags any line that differs from what that customer was last quoted.',
+      stack: 'Power Apps, SharePoint, Power Automate, Microsoft Graph' },
+    { name: 'Field service handover', dept: 'Field Service', status: 'testing',
+      problem: 'Jobs were handed from sales to field service by phone and email, with dates that kept moving.',
+      solution: 'Handover app storing fuzzy dates as a target, precision and window, an immutable event log, and daily digests that escalate the audience instead of the frequency. The job board demo is its wall screen.',
+      stack: 'Power Apps, SharePoint, Power Automate, HTML', demo: 'demos/job-board/' },
+    { name: 'Quality concern reporting', dept: 'Quality', status: 'live',
+      problem: 'A commercial quality system nobody liked using.',
+      solution: 'Replacement app with a seven-stage corrective action lifecycle, department routing, and eight notification flows from submission to closure, including a weekly management summary.',
+      stack: 'Power Apps, Dataverse, Power Automate' },
+    { name: 'Drawing search', dept: 'Engineering', status: 'live',
+      problem: 'The company moved off the desktop PDF software whose indexes engineers used to find drawings.',
+      solution: 'Offline keyword search across thousands of drawing PDFs with optional OCR, shipped as an app-style shortcut over a synced library. No admin rights or external links needed.',
+      stack: 'HTML/JS, pdf.js, Edge app mode, SharePoint sync' },
+    { name: 'Stack-up builder', dept: 'Engineering', status: 'testing',
+      problem: 'Equipment stack-up drawings were assembled by hand for every quote.',
+      solution: 'Compose stack-ups from drawing blocks, pick part numbers now or later, and print a drawing with bill of materials. A separate part manager lets non-programmers maintain the rules.',
+      stack: 'HTML/JS, canvas, data-driven compatibility rules' },
+    { name: 'Sales pipeline tracker', dept: 'Sales', status: 'testing',
+      problem: 'Finance needed forecast-versus-actual reporting across account managers.',
+      solution: 'One workbook per account manager in its own permissioned library, weekly snapshots by flow, and an offline management dashboard with week-by-week lookback.',
+      stack: 'Excel, SharePoint, Power Automate, Office Scripts, HTML' },
+    { name: 'Parts catalogue tooling', dept: 'Estimating', status: 'live',
+      problem: 'Part numbers in a ~17,000-item catalogue carry no meaning, so finding the right part relied on memory.',
+      solution: 'Description-driven stack check that validates a requested equipment stack, a nearest-match helper with word-level diffs, and a style guide for writing part descriptions.',
+      stack: 'Excel, HTML/JS' },
+    { name: 'Solution map', dept: 'All', status: 'live',
+      problem: 'Moving between departments made it hard to keep track of what feeds what.',
+      solution: 'One data file drives an interactive map with change-impact tracing, plus generated diagrams for each system.',
+      stack: 'HTML/JS, SVG, Mermaid, Node', demo: 'demos/solution-map/' }
+  ];
+  const ST = { live: ['Live', '--live'], testing: ['In testing', '--test'], design: ['Designed', '--plan'] };
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  document.getElementById('register').insertAdjacentHTML('beforeend', BUILDS.map((b, i) => {
+    const st = ST[b.status] || ST.design;
+    return '<div class="row"><span class="no">' + String(i + 1).padStart(2, '0') + '</span>' +
+      '<div><h3>' + esc(b.name) + '</h3><span class="dept">' + esc(b.dept) + '</span></div>' +
+      '<div><p class="problem">' + esc(b.problem) + '</p><p>' + esc(b.solution) + '</p></div>' +
+      '<div class="stack">' + esc(b.stack) + '</div>' +
+      '<div><span class="status" style="--c:var(' + st[1] + ')">' + st[0] + '</span>' +
+      (b.demo ? '<br><a class="demo-tag" href="' + b.demo + '">Demo</a>' : '') + '</div></div>';
+  }).join(''));
+  document.getElementById('buildCount').textContent = BUILDS.length;
+
+  const key = 'pf:theme';
+  try { const t = localStorage.getItem(key); if (t) document.documentElement.setAttribute('data-theme', t); } catch { /* ignore */ }
+  document.getElementById('btnTheme').onclick = () => {
+    const cur = document.documentElement.getAttribute('data-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    const next = cur === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    try { localStorage.setItem(key, next); } catch { /* ignore */ }
+  };
+})();
+</script>

@@ -1,0 +1,594 @@
+<!doctype html>
+<html lang="en-AU">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Field Service Job Board</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: operations wall board. Summary strip, then crew timeline or month grid, with a tray of jobs still awaiting a firm date. */
+:root {
+  --bg: #eef1f4;
+  --surface: #ffffff;
+  --surface-2: #f5f7f9;
+  --ink: #17202b;
+  --ink-2: #556270;
+  --line: #d7dde3;
+  --accent: #1d5c8c;
+  --st-submitted: #7a8694;
+  --st-returned: #8a5cc2;
+  --st-ack: #2f74b5;
+  --st-mob: #138a7e;
+  --st-progress: #2e8b3e;
+  --st-done: #a3adb8;
+  --warn: #d68910;
+  --warn-soft: #fbedd5;
+  --bad: #c0392b;
+  --today: #c0392b;
+  --weekend: rgba(23, 32, 43, 0.04);
+  --font-display: "Bahnschrift", "DIN Alternate", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-data: "Cascadia Mono", "Consolas", ui-monospace, monospace;
+  --radius: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f151c; --surface: #18212b; --surface-2: #1e2833; --ink: #e6ebf0; --ink-2: #93a1af; --line: #2b3744;
+    --accent: #5aa7e0; --st-submitted: #8794a3; --st-returned: #a984d8; --st-ack: #4f93d3; --st-mob: #2bb3a3;
+    --st-progress: #4cb35c; --st-done: #4a5562; --warn: #f0a733; --warn-soft: #3a2c12; --bad: #e05a4b; --today: #e05a4b;
+    --weekend: rgba(255, 255, 255, 0.03); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f151c; --surface: #18212b; --surface-2: #1e2833; --ink: #e6ebf0; --ink-2: #93a1af; --line: #2b3744;
+  --accent: #5aa7e0; --st-submitted: #8794a3; --st-returned: #a984d8; --st-ack: #4f93d3; --st-mob: #2bb3a3;
+  --st-progress: #4cb35c; --st-done: #4a5562; --warn: #f0a733; --warn-soft: #3a2c12; --bad: #e05a4b; --today: #e05a4b;
+  --weekend: rgba(255, 255, 255, 0.03); color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 var(--font-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 12px 24px;
+}
+button, select { font: inherit; color: inherit; }
+button:focus-visible, select:focus-visible, .bar:focus-visible, .chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Header */
+.top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-bottom: 14px; }
+.brand { display: flex; align-items: baseline; gap: 12px; flex: 1 1 260px; min-width: 0; }
+.brand h1 { margin: 0; font: 600 26px/1.1 var(--font-display); letter-spacing: 0.01em; text-wrap: balance; }
+.asof { font: 12px var(--font-data); color: var(--ink-2); white-space: nowrap; }
+.asof.stale { color: var(--warn); font-weight: 600; }
+.demo { font: 700 10px var(--font-display); letter-spacing: 0.12em; text-transform: uppercase; background: var(--warn-soft); color: var(--warn); padding: 2px 7px; border-radius: 3px; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--surface); }
+.seg button { border: 0; background: transparent; padding: 6px 12px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+.btn { border: 1px solid var(--line); background: var(--surface); padding: 6px 12px; border-radius: var(--radius); cursor: pointer; }
+.btn:hover, .seg button:hover:not([aria-pressed="true"]) { background: var(--surface-2); }
+select { border: 1px solid var(--line); background: var(--surface); padding: 6px 8px; border-radius: var(--radius); }
+.toggle { display: inline-flex; gap: 6px; align-items: center; color: var(--ink-2); font-size: 13px; }
+
+/* Summary strip */
+.summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 14px; border-left-width: 4px; }
+.stat .n { font: 600 28px/1 var(--font-display); font-variant-numeric: tabular-nums; }
+.stat .l { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-2); margin-top: 4px; }
+.stat.s-plan { border-left-color: var(--st-mob); }
+.stat.s-crew { border-left-color: var(--warn); }
+.stat.s-short { border-left-color: var(--st-ack); }
+.stat.s-fuzzy { border-left-color: var(--st-returned); }
+.stat.s-clash { border-left-color: var(--bad); }
+.stat.hot .n { color: var(--warn); }
+.stat.s-clash.hot .n { color: var(--bad); }
+
+/* Main split */
+.split { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 14px; align-items: start; }
+@media (max-width: 1000px) { .split { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); min-width: 0; }
+.panel-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+.panel-head h2 { margin: 0; font: 600 15px var(--font-display); letter-spacing: 0.02em; }
+.scroll-x { overflow-x: auto; }
+
+/* Timeline */
+.tl { min-width: 960px; position: relative; }
+.tl-row { display: grid; grid-template-columns: 150px 1fr; border-bottom: 1px solid var(--line); }
+.tl-row:last-child { border-bottom: 0; }
+.tl-name { padding: 8px 12px; font-weight: 600; font-size: 13px; border-right: 1px solid var(--line); display: flex; align-items: center; background: var(--surface); position: sticky; left: 0; z-index: 2; }
+.tl-name.unalloc { color: var(--warn); }
+.tl-track { position: relative; }
+.tl-days { display: grid; }
+.tl-day { border-right: 1px solid var(--line); font: 11px var(--font-data); color: var(--ink-2); text-align: center; padding: 4px 0; line-height: 1.2; }
+.tl-day.we, .tl-bgday.we { background: var(--weekend); }
+.tl-day.today { color: var(--today); font-weight: 700; }
+.tl-day .mo { display: block; font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; }
+.tl-bg { position: absolute; inset: 0; display: grid; pointer-events: none; }
+.tl-bgday { border-right: 1px solid var(--line); opacity: 0.6; }
+.tl-todayline { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--today); opacity: 0.7; pointer-events: none; z-index: 1; }
+
+.bar {
+  position: absolute; height: 26px; border-radius: 4px; padding: 0 8px; display: flex; align-items: center; gap: 6px;
+  font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; color: #fff;
+  background: var(--c); border: 0; text-align: left; z-index: 1;
+}
+.bar .id { font: 600 11px var(--font-data); opacity: 0.9; }
+.bar.fuzzy {
+  color: var(--ink); background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--c) 30%, transparent) 0 6px, color-mix(in srgb, var(--c) 12%, transparent) 6px 12px);
+  border: 1.5px dashed var(--c);
+}
+.bar.done { opacity: 0.55; }
+.bar.nocrew { box-shadow: inset 0 0 0 2px var(--warn); }
+.bar.clash { box-shadow: 0 0 0 2px var(--bad); }
+.flag { font: 700 9px var(--font-display); letter-spacing: 0.08em; text-transform: uppercase; background: var(--warn); color: #1a1205; padding: 1px 4px; border-radius: 2px; }
+.flag.red { background: var(--bad); color: #fff; }
+
+/* Month */
+.month-nav { display: flex; gap: 6px; align-items: center; }
+.month-nav .label { font: 600 15px var(--font-display); min-width: 130px; text-align: center; }
+.mgrid { display: grid; grid-template-columns: repeat(7, minmax(120px, 1fr)); min-width: 860px; }
+.mhead { font: 600 11px var(--font-display); text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-2); padding: 6px 8px; border-bottom: 1px solid var(--line); }
+.mcell { min-height: 108px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 4px 6px 6px; display: flex; flex-direction: column; gap: 3px; }
+.mcell:nth-child(7n) { border-right: 0; }
+.mcell.out { background: var(--surface-2); }
+.mcell.out .dn { opacity: 0.45; }
+.mcell.we { background: var(--weekend); }
+.mcell .dn { font: 600 12px var(--font-data); color: var(--ink-2); }
+.mcell.today .dn { color: #fff; background: var(--today); border-radius: 3px; padding: 0 5px; align-self: flex-start; }
+.chip { font-size: 11px; border-radius: 3px; padding: 2px 6px; color: #fff; background: var(--c); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; border: 0; text-align: left; }
+.chip.fuzzy { color: var(--ink); background: color-mix(in srgb, var(--c) 18%, transparent); border: 1px dashed var(--c); }
+.chip.nocrew { box-shadow: inset 3px 0 0 var(--warn); }
+.chip.done { opacity: 0.55; }
+.more { font-size: 11px; color: var(--ink-2); }
+
+/* Tray */
+.tray { display: flex; flex-direction: column; }
+.tray-sec h3 { margin: 0; padding: 10px 14px 6px; font: 600 11px var(--font-display); text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-2); }
+.tray-item { display: grid; grid-template-columns: 4px 1fr; gap: 10px; padding: 8px 14px; border-top: 1px solid var(--line); cursor: pointer; background: none; border-left: 0; border-right: 0; border-bottom: 0; text-align: left; width: 100%; }
+.tray-item:hover { background: var(--surface-2); }
+.tray-item .stripe { background: var(--c); border-radius: 2px; }
+.tray-item .t1 { font-weight: 600; font-size: 13px; }
+.tray-item .t2 { font-size: 12px; color: var(--ink-2); }
+.tray-empty { padding: 8px 14px 12px; color: var(--ink-2); font-size: 12px; }
+
+/* Legend */
+.legend { display: flex; flex-wrap: wrap; gap: 8px 16px; padding: 10px 14px; border-top: 1px solid var(--line); font-size: 12px; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 18px; height: 10px; border-radius: 2px; background: var(--c); display: inline-block; }
+.sw.fz { background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--c) 35%, transparent) 0 3px, transparent 3px 6px); border: 1px dashed var(--c); }
+
+/* Drawer */
+.scrim { position: fixed; inset: 0; background: rgba(10, 15, 20, 0.4); z-index: 20; }
+.drawer {
+  position: fixed; top: 0; right: 0; bottom: 0; width: min(420px, 100%); background: var(--surface); z-index: 21;
+  border-left: 1px solid var(--line); overflow-y: auto;
+  padding: calc(18px + env(safe-area-inset-top, 0px)) calc(20px + env(safe-area-inset-right, 0px)) calc(18px + env(safe-area-inset-bottom, 0px)) 20px;
+}
+.drawer h2 { margin: 4px 0 2px; font: 600 22px var(--font-display); }
+.drawer .sub { color: var(--ink-2); margin-bottom: 14px; }
+.pill { display: inline-block; font: 600 11px var(--font-display); letter-spacing: 0.06em; text-transform: uppercase; color: #fff; background: var(--c); border-radius: 3px; padding: 2px 8px; }
+.kv { display: grid; grid-template-columns: 110px 1fr; gap: 8px 12px; margin: 14px 0; }
+.kv dt { color: var(--ink-2); font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; padding-top: 1px; }
+.kv dd { margin: 0; }
+.kv .mono { font-family: var(--font-data); }
+.scope { background: var(--surface-2); border-radius: var(--radius); padding: 10px 12px; }
+.callout { margin: 12px 0; padding: 8px 12px; border-radius: var(--radius); background: var(--warn-soft); color: var(--ink); border-left: 3px solid var(--warn); font-size: 13px; }
+.callout.red { border-left-color: var(--bad); }
+.drawer-actions { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+.btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.note { font-size: 12px; color: var(--ink-2); margin-top: 6px; }
+
+/* Wall mode: hide controls, bigger type */
+body.wall .controls, body.wall .filters-note { display: none; }
+body.wall .brand h1 { font-size: 34px; }
+body.wall .bar { height: 30px; font-size: 13px; }
+.wall-exit { position: fixed; right: calc(16px + env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 5; }
+
+@media (max-width: 600px) {
+  .brand h1 { font-size: 21px; }
+  .stat .n { font-size: 22px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .drawer { animation: slide 0.18s ease-out; }
+  @keyframes slide { from { transform: translateX(24px); opacity: 0.6; } }
+}
+</style>
+
+<header class="top">
+  <div class="brand">
+    <h1>Field Service Job Board</h1>
+    <span class="asof" id="asof"></span>
+    <span class="demo" id="demoBadge" hidden>Demo data</span>
+  </div>
+  <div class="controls">
+    <div class="seg" role="group" aria-label="View">
+      <button id="vTimeline" aria-pressed="true">Crew timeline</button>
+      <button id="vMonth" aria-pressed="false">Month</button>
+    </div>
+    <select id="fRegion" aria-label="Region"></select>
+    <select id="fType" aria-label="Job type"></select>
+    <select id="fCoord" aria-label="Coordinator"></select>
+    <label class="toggle"><input type="checkbox" id="fNext14"> Next 14 days</label>
+    <button class="btn" id="btnWall" title="Hide controls and cycle views for a wall screen">Wall mode</button>
+    <button class="btn" id="btnTheme" title="Switch light or dark">Theme</button>
+  </div>
+</header>
+
+<section class="summary" id="summary" aria-label="Summary"></section>
+
+<div class="split">
+  <section class="panel">
+    <div class="panel-head">
+      <h2 id="viewTitle">Crew timeline</h2>
+      <div class="month-nav" id="monthNav" hidden>
+        <button class="btn" id="mPrev" aria-label="Previous month">‹</button>
+        <span class="label" id="mLabel"></span>
+        <button class="btn" id="mNext" aria-label="Next month">›</button>
+      </div>
+    </div>
+    <div class="scroll-x" id="viewBody"></div>
+    <div class="legend" id="legend"></div>
+  </section>
+
+  <aside class="panel tray" id="tray" aria-label="Awaiting"></aside>
+</div>
+
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="drawer" hidden aria-label="Job details"></aside>
+<button class="btn wall-exit" id="wallExit" hidden>Exit wall mode</button>
+
+<!-- Data: nightly snapshot written by the flow. Inline fallback keeps the page alive if the file is missing or mid-sync. -->
+<script>window.FSBOARD = { schemaVersion: 1, generatedAt: null, config: {}, techs: [], jobs: [] };</script>
+<script src="data/fs-jobs.js"></script>
+
+<script>
+(() => {
+  'use strict';
+  const D = window.FSBOARD;
+  const CFG = Object.assign({ appUrl: '', shortNoticeDays: 14, confirmWindowDays: 30 }, D.config || {});
+  const EXPECTED_SCHEMA = 1;
+  const STALE_HOURS = 26;            // midnight snapshot + sync slack
+  const RELOAD_MINUTES = 60;         // wall screens pick up the new file without anyone touching them
+  const WALL_CYCLE_SECONDS = 45;
+  const TL_BEFORE = 3, TL_DAYS = 42; // timeline window: 3 days back, 6 weeks total
+
+  const STATUS = {
+    'Submitted': { c: '--st-submitted', label: 'Submitted' },
+    'Returned for Clarification': { c: '--st-returned', label: 'Returned' },
+    'Acknowledged': { c: '--st-ack', label: 'Acknowledged' },
+    'Mobilisation in Progress': { c: '--st-mob', label: 'Planned' },
+    'Service in Progress': { c: '--st-progress', label: 'In progress' },
+    'Completed': { c: '--st-done', label: 'Completed' }
+  };
+  const HIDDEN_STATUSES = ['Draft', 'Cancelled'];
+
+  // ---------- Dates as whole day numbers (no timezone drift) ----------
+  const DAY = 86400000;
+  const dn = s => { const [y, m, d] = s.split('-').map(Number); return Date.UTC(y, m - 1, d) / DAY; };
+  const fromDn = n => new Date(n * DAY);
+  const fmt = (n, opts) => fromDn(n).toLocaleDateString('en-AU', Object.assign({ timeZone: 'UTC' }, opts));
+  const dow = n => (fromDn(n).getUTCDay() + 6) % 7; // Mon = 0
+  const isWe = n => dow(n) >= 5;
+  const now = new Date();
+  const TODAY = D.demo && D.demoToday ? dn(D.demoToday)
+    : Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / DAY;
+
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch { /* ignore */ } }
+  };
+
+  // ---------- Prepare jobs ----------
+  const jobs = (D.jobs || []).filter(j => !HIDDEN_STATUSES.includes(j.status)).map(j => {
+    const s = dn(j.start), e = dn(j.end || j.start);
+    const fuzzy = j.precision && j.precision !== 'day';
+    const planned = j.status === 'Mobilisation in Progress';
+    const crew = j.crew || [];
+    return Object.assign({}, j, {
+      s, e, fuzzy, planned, crew,
+      color: (STATUS[j.status] || STATUS.Submitted).c,
+      nocrew: planned && crew.length === 0,
+      done: j.status === 'Completed',
+      shortNotice: !planned && !['Service in Progress', 'Completed'].includes(j.status) && s - TODAY <= CFG.shortNoticeDays && e >= TODAY,
+      needsConfirm: fuzzy && s - TODAY <= CFG.confirmWindowDays && e >= TODAY
+    });
+  });
+
+  // Double bookings: same tech, overlapping days, neither completed
+  const clashIds = new Set();      // jobs with any clash
+  const clashKeys = new Set();     // tech|job pairs, so only the double-booked tech's row is flagged
+  const byTech = {};
+  jobs.forEach(j => j.crew.forEach(t => (byTech[t] = byTech[t] || []).push(j)));
+  Object.entries(byTech).forEach(([tech, list]) => {
+    for (let a = 0; a < list.length; a++) for (let b = a + 1; b < list.length; b++) {
+      const x = list[a], y = list[b];
+      if (!x.done && !y.done && x.s <= y.e && y.s <= x.e) {
+        clashIds.add(x.id); clashIds.add(y.id);
+        clashKeys.add(tech + '|' + x.id); clashKeys.add(tech + '|' + y.id);
+      }
+    }
+  });
+  jobs.forEach(j => { j.clash = clashIds.has(j.id); });
+
+  // ---------- State ----------
+  const state = {
+    view: store.get('fsb:view') || 'timeline',
+    region: '', type: '', coord: '', next14: false,
+    monthStart: (() => { const d = fromDn(TODAY); return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1) / DAY; })(),
+    wall: false
+  };
+
+  const passes = j =>
+    (!state.region || j.region === state.region) &&
+    (!state.type || j.type === state.type) &&
+    (!state.coord || j.coordinator === state.coord) &&
+    (!state.next14 || (j.e >= TODAY && j.s <= TODAY + 14));
+
+  // ---------- Header ----------
+  function renderHeader() {
+    const asof = document.getElementById('asof');
+    if (!D.generatedAt) {
+      asof.textContent = 'No data file found. Check data/fs-jobs.js is synced.';
+      asof.classList.add('stale');
+    } else {
+      const g = new Date(D.generatedAt);
+      const hours = (Date.now() - g.getTime()) / 3600000;
+      asof.textContent = 'Data as of ' + g.toLocaleString('en-AU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+      if (!D.demo && hours > STALE_HOURS) { asof.textContent += ' · stale, check the nightly flow'; asof.classList.add('stale'); }
+      if (D.schemaVersion !== EXPECTED_SCHEMA) { asof.textContent += ' · data format v' + D.schemaVersion + ' not recognised'; asof.classList.add('stale'); }
+    }
+    document.getElementById('demoBadge').hidden = !D.demo;
+  }
+
+  function fillSelect(id, label, values) {
+    const el = document.getElementById(id);
+    el.innerHTML = '<option value="">All ' + label + '</option>' +
+      [...new Set(values)].sort().map(v => '<option>' + esc(v) + '</option>').join('');
+  }
+
+  // ---------- Summary ----------
+  function renderSummary() {
+    const vis = jobs.filter(passes);
+    const live = vis.filter(j => j.e >= TODAY);
+    const n = {
+      plan: live.filter(j => j.planned && j.s <= TODAY + 14).length,
+      crew: live.filter(j => j.nocrew).length,
+      short: live.filter(j => j.shortNotice).length,
+      fuzzy: live.filter(j => j.needsConfirm).length,
+      clash: new Set(live.filter(j => j.clash).map(j => j.id)).size
+    };
+    const tile = (cls, num, label, hot) =>
+      '<div class="stat ' + cls + (hot && num ? ' hot' : '') + '"><div class="n">' + num + '</div><div class="l">' + label + '</div></div>';
+    document.getElementById('summary').innerHTML =
+      tile('s-plan', n.plan, 'Planned, next 14 days') +
+      tile('s-crew', n.crew, 'Planned, no crew yet', true) +
+      tile('s-short', n.short, 'Short notice, not planned', true) +
+      tile('s-fuzzy', n.fuzzy, 'Dates to confirm', false) +
+      tile('s-clash', n.clash, 'Jobs double-booked', true);
+  }
+
+  // ---------- Timeline ----------
+  function renderTimeline() {
+    const start = TODAY - TL_BEFORE, end = start + TL_DAYS - 1;
+    const cols = 'repeat(' + TL_DAYS + ', 1fr)';
+    const pct = d => ((d - start) / TL_DAYS * 100);
+    const inWin = j => j.e >= start && j.s <= end;
+    const vis = jobs.filter(j => passes(j) && inWin(j));
+
+    let html = '<div class="tl">';
+    // Day header
+    html += '<div class="tl-row"><div class="tl-name" style="font-weight:400;color:var(--ink-2)">Crew</div><div class="tl-days" style="grid-template-columns:' + cols + '">';
+    for (let d = start; d <= end; d++) {
+      const first = d === start || fromDn(d).getUTCDate() === 1;
+      html += '<div class="tl-day' + (isWe(d) ? ' we' : '') + (d === TODAY ? ' today' : '') + '">' +
+        '<span class="mo">' + (first ? fmt(d, { month: 'short' }) : fmt(d, { weekday: 'narrow' })) + '</span>' + fromDn(d).getUTCDate() + '</div>';
+    }
+    html += '</div></div>';
+
+    const rows = (D.techs || []).map(t => ({ name: t, jobs: vis.filter(j => j.crew.includes(t)) }));
+    const unalloc = vis.filter(j => j.crew.length === 0);
+    rows.push({ name: 'Unallocated', jobs: unalloc, unalloc: true });
+
+    rows.forEach(r => {
+      // Stack overlapping bars into lanes
+      const lanes = [];
+      r.jobs.slice().sort((a, b) => a.s - b.s).forEach(j => {
+        let li = lanes.findIndex(l => l[l.length - 1].e < j.s);
+        if (li < 0) { lanes.push([]); li = lanes.length - 1; }
+        lanes[li].push(j); j._lane = li;
+      });
+      const h = Math.max(1, lanes.length) * 32 + 8;
+      html += '<div class="tl-row"><div class="tl-name' + (r.unalloc ? ' unalloc' : '') + '">' + esc(r.name) + '</div>' +
+        '<div class="tl-track" style="height:' + h + 'px">' +
+        '<div class="tl-bg" style="grid-template-columns:' + cols + '">';
+      for (let d = start; d <= end; d++) html += '<div class="tl-bgday' + (isWe(d) ? ' we' : '') + '"></div>';
+      html += '</div><div class="tl-todayline" style="left:' + pct(TODAY + 0.5) + '%"></div>';
+      lanes.forEach(l => l.forEach(j => {
+        const s = Math.max(j.s, start), e = Math.min(j.e, end);
+        const rowClash = clashKeys.has(r.name + '|' + j.id);
+        const cls = ['bar', j.fuzzy && 'fuzzy', j.done && 'done', j.nocrew && 'nocrew', rowClash && 'clash'].filter(Boolean).join(' ');
+        const flag = j.nocrew ? '<span class="flag">No crew</span>' : (rowClash ? '<span class="flag red">Clash</span>' : '');
+        html += '<button class="' + cls + '" data-id="' + j.id + '" style="--c:var(' + j.color + ');left:calc(' + pct(s) + '% + 2px);width:calc(' + ((e - s + 1) / TL_DAYS * 100) + '% - 4px);top:' + (6 + j._lane * 32) + 'px" title="' + esc(j.id + ' · ' + j.customer + ' · ' + j.site) + '">' +
+          '<span class="id">' + j.id + '</span>' + flag + '<span>' + esc(j.site) + '</span></button>';
+      }));
+      html += '</div></div>';
+    });
+    html += '</div>';
+    return html;
+  }
+
+  // ---------- Month ----------
+  function renderMonth() {
+    const m0 = state.monthStart;
+    const d0 = fromDn(m0);
+    const nextMonth = Date.UTC(d0.getUTCFullYear(), d0.getUTCMonth() + 1, 1) / DAY;
+    const gridStart = m0 - dow(m0);
+    const weeks = Math.ceil((nextMonth - gridStart) / 7);
+    document.getElementById('mLabel').textContent = fmt(m0, { month: 'long', year: 'numeric' });
+    const vis = jobs.filter(passes);
+
+    let html = '<div class="mgrid">';
+    ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].forEach(d => { html += '<div class="mhead">' + d + '</div>'; });
+    for (let i = 0; i < weeks * 7; i++) {
+      const d = gridStart + i;
+      const out = d < m0 || d >= nextMonth;
+      const day = vis.filter(j => j.s <= d && j.e >= d).sort((a, b) => (a.fuzzy - b.fuzzy) || a.s - b.s);
+      html += '<div class="mcell' + (out ? ' out' : '') + (!out && isWe(d) ? ' we' : '') + (d === TODAY ? ' today' : '') + '"><span class="dn">' + fromDn(d).getUTCDate() + '</span>';
+      day.slice(0, 3).forEach(j => {
+        const cls = ['chip', j.fuzzy && 'fuzzy', j.nocrew && 'nocrew', j.done && 'done'].filter(Boolean).join(' ');
+        html += '<button class="' + cls + '" data-id="' + j.id + '" style="--c:var(' + j.color + ')" title="' + esc(j.id + ' · ' + j.site) + '">' + j.id + ' ' + esc(j.site) + '</button>';
+      });
+      if (day.length > 3) html += '<span class="more">+' + (day.length - 3) + ' more</span>';
+      html += '</div>';
+    }
+    html += '</div>';
+    return html;
+  }
+
+  // ---------- Tray: jobs still waiting on something ----------
+  function renderTray() {
+    const vis = jobs.filter(j => passes(j) && j.e >= TODAY);
+    const sec = (title, list, line) =>
+      '<div class="tray-sec"><h3>' + title + ' (' + list.length + ')</h3>' +
+      (list.length ? list.map(j =>
+        '<button class="tray-item" data-id="' + j.id + '" style="--c:var(' + j.color + ')"><span class="stripe"></span><span>' +
+        '<div class="t1">' + j.id + ' · ' + esc(j.site) + '</div><div class="t2">' + line(j) + '</div></span></button>').join('')
+        : '<div class="tray-empty">Nothing waiting.</div>') + '</div>';
+
+    const awaitingAck = vis.filter(j => ['Submitted', 'Returned for Clarification'].includes(j.status)).sort((a, b) => a.s - b.s);
+    const awaitingDate = vis.filter(j => j.fuzzy && j.status !== 'Submitted' && j.status !== 'Returned for Clarification').sort((a, b) => a.s - b.s);
+    const awaitingCrew = vis.filter(j => j.nocrew).sort((a, b) => a.s - b.s);
+
+    document.getElementById('tray').innerHTML =
+      sec('Planned, no crew yet', awaitingCrew, j => 'Starts ' + fmt(j.s, { weekday: 'short', day: 'numeric', month: 'short' }) + ' · ' + esc(j.region)) +
+      sec('Awaiting acknowledgement', awaitingAck, j => (j.status === 'Returned for Clarification' ? 'Returned to sales · ' : '') + whenText(j)) +
+      sec('Awaiting firm date', awaitingDate, j => whenText(j) + ' · ' + esc(j.customer));
+  }
+
+  function whenText(j) {
+    if (j.precision === 'month') return fmt(j.s, { month: 'long' }) + ' (month only)';
+    if (j.precision === 'week') return 'Week of ' + fmt(j.s, { day: 'numeric', month: 'short' }) + ', window to ' + fmt(j.e, { day: 'numeric', month: 'short' });
+    return j.s === j.e ? fmt(j.s, { weekday: 'short', day: 'numeric', month: 'short' })
+      : fmt(j.s, { day: 'numeric', month: 'short' }) + ' to ' + fmt(j.e, { day: 'numeric', month: 'short' });
+  }
+
+  // ---------- Legend ----------
+  function renderLegend() {
+    const items = Object.values(STATUS).map(s => '<span><i class="sw" style="--c:var(' + s.c + ')"></i>' + s.label + '</span>').join('');
+    document.getElementById('legend').innerHTML = items +
+      '<span><i class="sw fz" style="--c:var(--st-ack)"></i>Date not firm (window)</span>' +
+      '<span><span class="flag">No crew</span>Planned, nobody allocated</span>' +
+      '<span><span class="flag red">Clash</span>Tech double-booked</span>';
+  }
+
+  // ---------- Drawer ----------
+  function openJob(id) {
+    const j = jobs.find(x => x.id === id);
+    if (!j) return;
+    const st = STATUS[j.status] || STATUS.Submitted;
+    const link = CFG.appUrl ? CFG.appUrl + (CFG.appUrl.includes('?') ? '&' : '?') + 'job=' + encodeURIComponent(j.id) : '';
+    const dr = document.getElementById('drawer');
+    dr.innerHTML =
+      '<span class="pill" style="--c:var(' + st.c + ')">' + st.label + '</span>' +
+      '<h2>' + j.id + ' · ' + esc(j.site) + '</h2>' +
+      '<div class="sub">' + esc(j.customer) + ' · ' + esc(j.region) + '</div>' +
+      (j.nocrew ? '<div class="callout">Planned with no crew allocated. Sales have been told "crew to be allocated".</div>' : '') +
+      (j.clash ? '<div class="callout red">A tech on this job is booked on another job at the same time.</div>' : '') +
+      (j.shortNotice ? '<div class="callout">Short notice: starts within ' + CFG.shortNoticeDays + ' days and not yet planned.</div>' : '') +
+      (j.needsConfirm ? '<div class="callout">Date not firm and inside the ' + CFG.confirmWindowDays + '-day confirm window: chase the customer for a date.</div>' : '') +
+      '<dl class="kv">' +
+      '<dt>Job type</dt><dd>' + esc(j.type) + '</dd>' +
+      '<dt>When</dt><dd>' + whenText(j) + '</dd>' +
+      '<dt>Crew</dt><dd>' + (j.crew.length ? j.crew.map(esc).join(', ') : '<span style="color:var(--warn)">To be allocated</span>') + '</dd>' +
+      '<dt>Coordinator</dt><dd>' + esc(j.coordinator || '') + '</dd>' +
+      '<dt>Sales</dt><dd>' + esc(j.salesRep || '') + '</dd>' +
+      '<dt>Quote</dt><dd class="mono">' + esc(j.quote || '') + '</dd>' +
+      '</dl>' +
+      '<div class="scope">' + esc(j.scope || '') + '</div>' +
+      '<div class="drawer-actions">' +
+      (link ? '<a class="btn primary" href="' + esc(link) + '" target="_blank" rel="noopener">Open in job app</a>' : '<button class="btn primary" disabled>Open in job app</button>') +
+      '<button class="btn" id="drClose">Close</button></div>' +
+      (link ? '' : '<div class="note">In the live version this opens the job in the Power App.</div>');
+    dr.hidden = false;
+    document.getElementById('scrim').hidden = false;
+    document.getElementById('drClose').onclick = closeJob;
+    document.getElementById('drClose').focus();
+  }
+  function closeJob() {
+    document.getElementById('drawer').hidden = true;
+    document.getElementById('scrim').hidden = true;
+  }
+
+  // ---------- Render ----------
+  function render() {
+    renderSummary();
+    const body = document.getElementById('viewBody');
+    const isTl = state.view === 'timeline';
+    document.getElementById('vTimeline').setAttribute('aria-pressed', String(isTl));
+    document.getElementById('vMonth').setAttribute('aria-pressed', String(!isTl));
+    document.getElementById('viewTitle').textContent = isTl ? 'Crew timeline · next 6 weeks' : 'Month';
+    document.getElementById('monthNav').hidden = isTl;
+    body.innerHTML = isTl ? renderTimeline() : renderMonth();
+    renderTray();
+  }
+
+  function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+  // ---------- Wall mode ----------
+  let cycleTimer = null, wakeLock = null;
+  async function setWall(on) {
+    state.wall = on;
+    document.body.classList.toggle('wall', on);
+    document.getElementById('wallExit').hidden = !on;
+    clearInterval(cycleTimer);
+    if (on) {
+      cycleTimer = setInterval(() => { state.view = state.view === 'timeline' ? 'month' : 'timeline'; render(); }, WALL_CYCLE_SECONDS * 1000);
+      try { wakeLock = await navigator.wakeLock.request('screen'); } catch { /* optional */ }
+      try { await document.documentElement.requestFullscreen(); } catch { /* optional */ }
+    } else {
+      try { if (wakeLock) await wakeLock.release(); } catch { /* ignore */ }
+      try { if (document.fullscreenElement) await document.exitFullscreen(); } catch { /* ignore */ }
+    }
+  }
+
+  // ---------- Wire up ----------
+  fillSelect('fRegion', 'regions', jobs.map(j => j.region));
+  fillSelect('fType', 'job types', jobs.map(j => j.type));
+  fillSelect('fCoord', 'coordinators', jobs.map(j => j.coordinator).filter(Boolean));
+  document.getElementById('fRegion').onchange = e => { state.region = e.target.value; render(); };
+  document.getElementById('fType').onchange = e => { state.type = e.target.value; render(); };
+  document.getElementById('fCoord').onchange = e => { state.coord = e.target.value; render(); };
+  document.getElementById('fNext14').onchange = e => { state.next14 = e.target.checked; render(); };
+  document.getElementById('vTimeline').onclick = () => { state.view = 'timeline'; store.set('fsb:view', 'timeline'); render(); };
+  document.getElementById('vMonth').onclick = () => { state.view = 'month'; store.set('fsb:view', 'month'); render(); };
+  document.getElementById('mPrev').onclick = () => { const d = fromDn(state.monthStart); state.monthStart = Date.UTC(d.getUTCFullYear(), d.getUTCMonth() - 1, 1) / DAY; render(); };
+  document.getElementById('mNext').onclick = () => { const d = fromDn(state.monthStart); state.monthStart = Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1) / DAY; render(); };
+  document.getElementById('btnWall').onclick = () => setWall(true);
+  document.getElementById('wallExit').onclick = () => setWall(false);
+  document.getElementById('scrim').onclick = closeJob;
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeJob(); if (state.wall) setWall(false); } });
+  document.addEventListener('click', e => {
+    const t = e.target.closest('[data-id]');
+    if (t) openJob(t.dataset.id);
+  });
+  const themeKey = 'fsb:theme';
+  const applyTheme = t => { if (t) document.documentElement.setAttribute('data-theme', t); };
+  applyTheme(store.get(themeKey));
+  document.getElementById('btnTheme').onclick = () => {
+    const cur = document.documentElement.getAttribute('data-theme') ||
+      (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    const next = cur === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    store.set(themeKey, next);
+  };
+
+  // Reload hourly so a wall screen picks up the nightly file without anyone touching it
+  setTimeout(() => location.reload(), RELOAD_MINUTES * 60000);
+
+  renderHeader();
+  renderLegend();
+  render();
+})();
+</script>
