@@ -2,6 +2,14 @@
 <html lang="en-AU">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Solution Map">
+<meta property="og:description" content="Interactive map of apps, flows and tools with risk view, decisions and handover packs. Demo with generic names.">
+<meta property="og:image" content="https://jaidynkay314-cyber.github.io/portfolio/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://jaidynkay314-cyber.github.io/portfolio/demos/solution-map/">
+<meta name="twitter:card" content="summary_large_image">
 <title>Solution Map</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <style>
@@ -135,6 +143,54 @@ svg.links.hide path:not(.hot):not(.hot-up) { display: none; }
 .legend .ln.up { border-color: var(--edge-up); }
 .legend .ln.pl { border-top-style: dashed; border-color: var(--ink-2); }
 
+/* Risk view */
+.node .rk { position: absolute; bottom: -4px; right: -4px; width: 14px; height: 14px; border-radius: 50%; background: var(--s-blocked); color: #fff; font: 700 10px/14px var(--font-data); text-align: center; border: 2px solid var(--surface); }
+body.riskview .node.has-risk { border-color: var(--s-blocked); box-shadow: 0 0 0 2px color-mix(in srgb, var(--s-blocked) 45%, transparent); }
+body.riskview .node:not(.has-risk) { opacity: 0.25; }
+body:not(.riskview) .node .rk { display: none; }
+
+/* System head actions */
+.sys-actions { display: flex; gap: 6px; flex-wrap: wrap; margin: -2px 0 8px; }
+.sysbtn { border: 1px solid var(--line); background: transparent; color: var(--ink-2); font-size: 11.5px; padding: 2px 8px; border-radius: 3px; cursor: pointer; }
+.sysbtn:hover { color: var(--ink); border-color: var(--ink-2); }
+
+/* Detail extras */
+.riskbox { margin-top: 12px; padding: 10px 12px; border-radius: var(--radius); border-left: 3px solid var(--s-blocked); background: color-mix(in srgb, var(--s-blocked) 10%, var(--surface)); font-size: 13px; }
+.riskbox ul, .logbox ul { margin: 4px 0 0; padding-left: 18px; }
+.logbox { margin-top: 12px; padding: 10px 12px; border-radius: var(--radius); background: var(--surface-2); font-size: 13px; }
+.logbox .d { font: 600 11px var(--font-data); color: var(--ink-2); }
+.dec { padding: 8px 0; border-top: 1px solid var(--line); font-size: 13px; }
+.dec:first-of-type { border-top: 0; }
+.dec .t { font-weight: 600; }
+.dec .id { font: 600 11px var(--font-data); color: var(--ink-2); margin-right: 6px; }
+.dec .st { font: 600 10px var(--font-display); text-transform: uppercase; letter-spacing: 0.08em; color: var(--s-design); margin-left: 6px; }
+.dec .w { color: var(--ink-2); margin-top: 2px; }
+.btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* Handover pack modal */
+.modal-scrim { position: fixed; inset: 0; background: rgba(10, 14, 12, 0.45); z-index: 30; }
+.modal { position: fixed; z-index: 31; inset: calc(16px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) calc(16px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+  max-width: 900px; margin: 0 auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); display: flex; flex-direction: column; overflow: hidden; }
+.modal-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+.modal-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.modal-msg { padding: 6px 14px; font-size: 12px; background: var(--accent-soft); }
+.pack-body { overflow: auto; padding: 8px 22px 28px; font-size: 14px; }
+.pack-body h1 { font: 600 24px var(--font-display); margin: 12px 0 8px; }
+.pack-body h2 { font: 600 17px var(--font-display); margin: 22px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+.pack-body h3 { font: 600 14px var(--font-body); margin: 14px 0 4px; }
+.pack-body p { margin: 6px 0; max-width: 75ch; }
+.pack-body ul { margin: 4px 0 8px; padding-left: 20px; }
+.pack-body .tbl { overflow-x: auto; }
+.pack-body table { border-collapse: collapse; font-size: 12.5px; min-width: 640px; }
+.pack-body th, .pack-body td { border: 1px solid var(--line); padding: 4px 6px; text-align: left; vertical-align: top; }
+.pack-body th { background: var(--surface-2); }
+@media print {
+  body.printing > *:not(#pack) { display: none !important; }
+  body.printing #pack { position: static; border: 0; max-width: none; }
+  body.printing .modal-bar, body.printing .modal-msg { display: none; }
+  body.printing .pack-body { overflow: visible; }
+}
+
 @media (max-width: 600px) {
   .brand h1 { font-size: 22px; }
   .grid { grid-template-columns: minmax(0, 1fr); }
@@ -146,12 +202,13 @@ svg.links.hide path:not(.hot):not(.hot-up) { display: none; }
 <header class="top">
   <div class="brand">
     <h1>Solution Map</h1>
-    <p id="subtitle">Demo: the architecture behind a set of internal tools, with generic names. Click anything to trace what it feeds.</p>
+    <p id="subtitle">Demo: the architecture behind a set of internal tools, with generic names. Click anything to trace it; try Risk view and a Handover pack.</p>
   </div>
   <div class="controls">
     <input type="search" id="q" placeholder="Search names and notes" aria-label="Search">
     <select id="fDept" aria-label="Department"></select>
     <select id="fStatus" aria-label="Status"></select>
+    <button class="btn" id="btnRisk" aria-pressed="false" title="Highlight components with known risks">Risk view</button>
     <button class="btn" id="btnLinks" aria-pressed="true" title="Show every link, or only the selected item's links">All links</button>
     <button class="btn" id="btnTheme" title="Switch light or dark">Theme</button>
   </div>
@@ -167,13 +224,36 @@ svg.links.hide path:not(.hot):not(.hot-up) { display: none; }
   <aside class="detail" id="detail" aria-live="polite"></aside>
 </div>
 
-<script>window.SOLMAP = { systems: [], nodes: [], edges: [] };</script>
+<div class="modal-scrim" id="packScrim" hidden></div>
+<section class="modal" id="pack" hidden aria-label="Handover pack">
+  <div class="modal-bar">
+    <strong id="packTitle">Handover pack</strong>
+    <span class="modal-actions">
+      <button class="btn" id="packCopy">Copy as Markdown</button>
+      <button class="btn" id="packDownload">Download .md</button>
+      <button class="btn" id="packPrint">Print</button>
+      <button class="btn" id="packClose">Close</button>
+    </span>
+  </div>
+  <div class="modal-msg" id="packMsg" hidden></div>
+  <article class="pack-body" id="packBody"></article>
+</section>
+
+<script>window.SOLMAP = { systems: [], nodes: [], edges: [] }; window.WORKLOG = { entries: [] }; window.DECISIONS = { items: [] };</script>
 <script src="data/solutions.js"></script>
+<script src="data/worklog.js"></script>
+<script src="data/decisions.js"></script>
+<script src="lib/pack.js"></script>
 
 <script>
 (() => {
   'use strict';
   const M = window.SOLMAP;
+  const LIB = window.SMLIB;
+  const W = window.WORKLOG || { entries: [] };
+  const DC = window.DECISIONS || { items: [] };
+  if (LIB) LIB.enrich(M);
+  const risksOf = n => (LIB ? LIB.risksFor(M, n) : ((M.risks || {})[n.id] || []));
   const KINDS = {
     app:      { label: 'Power App',   c: '--k-app' },
     flow:     { label: 'Flow',        c: '--k-flow' },
@@ -212,7 +292,9 @@ svg.links.hide path:not(.hot):not(.hot-up) { display: none; }
     get(k) { try { return localStorage.getItem(k); } catch { return null; } },
     set(k, v) { try { localStorage.setItem(k, v); } catch { /* ignore */ } }
   };
-  const state = { q: '', dept: '', status: '', sel: null, allLinks: store.get('sm:links') !== 'off' };
+  const state = { q: '', dept: '', status: '', sel: null, selSys: null, risk: false, allLinks: store.get('sm:links') !== 'off' };
+  const logsFor = sid => W.entries.filter(e => e.system === sid).sort((a, b) => (a.date < b.date ? -1 : 1));
+  const decsFor = sid => DC.items.filter(d => d.system === sid);
 
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const glyph = k => '<svg class="g" viewBox="0 0 16 16" aria-hidden="true" style="--kc:var(' + (KINDS[k] || KINDS.store).c + ')">' + (GLYPH[k] || GLYPH.store) + '</svg>';
@@ -245,6 +327,8 @@ svg.links.hide path:not(.hot):not(.hot-up) { display: none; }
       '<span><b>' + M.nodes.length + '</b> components</span>' +
       '<span><b>' + edges.length + '</b> links</span>' +
       STATUSES.map(s => count(s) ? '<span><b>' + count(s) + '</b> ' + s + '</span>' : '').join('') +
+      '<span><b>' + M.nodes.filter(n => risksOf(n).length).length + '</b> with risks</span>' +
+      '<span><b>' + DC.items.length + '</b> decisions (' + DC.items.filter(d => d.status === 'open').length + ' open)</span>' +
       '<span>Updated <b>' + esc(M.updated || '') + '</b></span>';
   }
 
@@ -257,13 +341,16 @@ svg.links.hide path:not(.hot):not(.hot-up) { display: none; }
       const nodes = M.nodes.filter(n => n.system === s.id)
         .sort((a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind));
       if (!nodes.some(matches) && (state.q || state.dept || state.status)) return '';
-      return '<section class="sys"><div class="sys-head"><h2>' + esc(s.name) + '</h2><span>' + esc(s.dept) + '</span></div><div class="nodes">' +
+      return '<section class="sys"><div class="sys-head"><h2>' + esc(s.name) + '</h2><span>' + esc(s.dept) + '</span></div>' +
+        '<div class="sys-actions"><button class="sysbtn" data-sys="' + s.id + '">Log &amp; decisions</button><button class="sysbtn" data-pack="' + s.id + '">Handover pack</button></div><div class="nodes">' +
         nodes.map(n => {
-          const cls = ['node', 'status-' + n.status,
+          const nr = risksOf(n).length;
+          const cls = ['node', 'status-' + n.status, nr && 'has-risk',
             sel && n.id === sel && 'sel', down.has(n.id) && 'down', up.has(n.id) && 'up',
             ((sel && n.id !== sel && !down.has(n.id) && !up.has(n.id)) || !matches(n)) && 'dim'].filter(Boolean).join(' ');
           return '<button class="' + cls + '" data-id="' + n.id + '" title="' + esc((KINDS[n.kind] || {}).label + ' · ' + n.status) + '">' +
-            glyph(n.kind) + '<span class="nm">' + esc(n.name) + '</span><i class="st" style="--sc:var(--s-' + n.status + ')"></i></button>';
+            glyph(n.kind) + '<span class="nm">' + esc(n.name) + '</span><i class="st" style="--sc:var(--s-' + n.status + ')"></i>' +
+            (nr ? '<i class="rk" aria-label="' + nr + ' risks">' + nr + '</i>' : '') + '</button>';
         }).join('') + '</div></section>';
     }).join('');
     requestAnimationFrame(drawLinks);
@@ -301,6 +388,7 @@ svg.links.hide path:not(.hot):not(.hot-up) { display: none; }
 
   function renderDetail() {
     const el = document.getElementById('detail');
+    if (state.selSys && !state.sel) { el.innerHTML = systemDetail(state.selSys) + legend(); return; }
     const n = state.sel && byId[state.sel];
     if (!n) {
       el.innerHTML = '<div class="empty"><h2>Pick anything on the map</h2><p>Select a card to see what feeds it, what it feeds, and everything downstream that could break if it changes.</p></div>' + legend();
@@ -319,13 +407,71 @@ svg.links.hide path:not(.hot):not(.hot-up) { display: none; }
       '<div class="meta">' +
       (n.where ? '<span>Where: ' + esc(n.where) + '</span>' : '') +
       (n.tech ? '<span>Built with: ' + esc(n.tech) + '</span>' : '') +
+      (n.owner ? '<span>Owner: ' + esc(n.owner) + '</span>' : '') +
+      (n.runsAs ? '<span>Runs as: ' + esc(n.runsAs) + '</span>' : '') +
+      (n.ownerNote ? '<span>' + esc(n.ownerNote) + '</span>' : '') +
       '<span class="mono">id: ' + esc(n.id) + '</span></div>' +
       '<div class="rel"><h3>Fed by (' + ups.length + ')</h3>' + (ups.length ? '<ul>' + ups.map(e => relItem(e, 'up')).join('') + '</ul>' : '<span class="meta">Nothing upstream.</span>') +
       '<h3>Feeds (' + downs.length + ')</h3>' + (downs.length ? '<ul>' + downs.map(e => relItem(e, 'down')).join('') + '</ul>' : '<span class="meta">Nothing downstream.</span>') + '</div>' +
       (impact.size ? '<div class="impact">If this changes, check <b>' + impact.size + '</b> downstream item' + (impact.size === 1 ? '' : 's') + ': ' +
         [...impact].map(id => esc(byId[id].name)).join(', ') + '.</div>' : '') +
+      riskBox(risksOf(n)) +
+      decisionList(DC.items.filter(d => (d.nodes || []).includes(n.id)), 'Decisions about this') +
+      '<div class="detail-actions" style="margin-top:12px"><button class="btn" data-sys="' + n.system + '">' + esc(sys.name) + ': log &amp; decisions</button></div>' +
       legend();
   }
+
+  function riskBox(list) {
+    return list.length ? '<div class="riskbox"><strong>Risks (' + list.length + ')</strong><ul>' + list.map(r => '<li>' + esc(r) + '</li>').join('') + '</ul></div>' : '';
+  }
+
+  function decisionList(list, title) {
+    if (!list.length) return '';
+    return '<div class="rel"><h3>' + title + ' (' + list.length + ')</h3>' + list.map(d =>
+      '<div class="dec"><div><span class="id">' + esc(d.id) + '</span><span class="t">' + esc(d.title) + '</span>' +
+      (d.status !== 'decided' ? '<span class="st">' + esc(d.status) + '</span>' : '') + '</div>' +
+      '<div>' + esc(d.decision) + '</div>' + (d.why ? '<div class="w">Why: ' + esc(d.why) + '</div>' : '') + '</div>').join('') + '</div>';
+  }
+
+  function systemDetail(sid) {
+    const s = sysById[sid];
+    const logs = logsFor(sid);
+    const latest = logs[logs.length - 1];
+    const nodes = M.nodes.filter(n => n.system === sid);
+    const risky = nodes.filter(n => risksOf(n).length);
+    const open = [...new Set(logs.flatMap(e => e.open || []))];
+    const decs = decsFor(sid);
+    return '<div class="tags"><span class="tag ghost">' + esc(s.dept) + '</span><span class="tag ghost">' + nodes.length + ' components</span></div>' +
+      '<h2>' + esc(s.name) + '</h2>' +
+      '<div class="detail-actions" style="margin:10px 0"><button class="btn primary" data-pack="' + sid + '">Handover pack</button></div>' +
+      (latest ? '<div class="logbox"><div class="d">LAST WORKED ' + esc(latest.date) + (latest.backfill ? ' · backfilled' : '') + '</div>' +
+        '<p style="margin:6px 0">' + esc(latest.summary) + '</p>' +
+        '<div><strong>Left off:</strong> ' + esc(latest.leftOff || '') + '</div>' +
+        (latest.next && latest.next.length ? '<div style="margin-top:6px"><strong>Next</strong><ul>' + latest.next.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul></div>' : '') +
+        '</div>' : '<p class="meta">No work log yet.</p>') +
+      (open.length ? '<div class="riskbox" style="border-left-color:var(--s-design);background:color-mix(in srgb, var(--s-design) 10%, var(--surface))"><strong>Waiting on someone</strong><ul>' + open.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul></div>' : '') +
+      (risky.length ? '<div class="riskbox"><strong>Components with risks (' + risky.length + ')</strong><ul>' + risky.map(n => '<li><button class="sysbtn" data-id="' + n.id + '">' + esc(n.name) + '</button> ' + risksOf(n).length + '</li>').join('') + '</ul></div>' : '') +
+      decisionList(decs, 'Decisions') +
+      (logs.length > 1 ? '<div class="rel"><h3>Earlier log entries</h3>' + logs.slice(0, -1).reverse().map(e => '<div class="dec"><span class="id">' + esc(e.date) + '</span>' + esc(e.summary) + '</div>').join('') + '</div>' : '');
+  }
+
+  // ---------- Handover pack ----------
+  let packMd = '', packSys = '';
+  function openPack(sid) {
+    packSys = sid;
+    packMd = LIB.packMarkdown(M, W, DC, sid);
+    document.getElementById('packTitle').textContent = 'Handover pack: ' + sysById[sid].name;
+    document.getElementById('packBody').innerHTML = LIB.mdToHtml(packMd);
+    document.getElementById('packMsg').hidden = true;
+    document.getElementById('pack').hidden = false;
+    document.getElementById('packScrim').hidden = false;
+    document.getElementById('packClose').focus();
+  }
+  function closePack() {
+    document.getElementById('pack').hidden = true;
+    document.getElementById('packScrim').hidden = true;
+  }
+  function packMsg(t) { const m = document.getElementById('packMsg'); m.textContent = t; m.hidden = false; }
 
   function legend() {
     return '<div class="legend">' +
@@ -353,10 +499,49 @@ svg.links.hide path:not(.hot):not(.hot-up) { display: none; }
   syncLinksBtn();
 
   document.addEventListener('click', e => {
+    const p = e.target.closest('[data-pack]');
+    if (p) { openPack(p.dataset.pack); return; }
+    const sy = e.target.closest('[data-sys]');
+    if (sy) { state.sel = null; state.selSys = sy.dataset.sys; renderGrid(); renderDetail(); return; }
     const t = e.target.closest('[data-id]');
-    if (t) select(t.dataset.id);
+    if (t) { state.selSys = null; select(t.dataset.id); }
   });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape' && state.sel) select(state.sel); });
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    if (!document.getElementById('pack').hidden) { closePack(); return; }
+    if (state.sel) select(state.sel);
+  });
+
+  const btnRisk = document.getElementById('btnRisk');
+  btnRisk.onclick = () => {
+    state.risk = !state.risk;
+    btnRisk.setAttribute('aria-pressed', String(state.risk));
+    document.body.classList.toggle('riskview', state.risk);
+  };
+
+  document.getElementById('packClose').onclick = closePack;
+  document.getElementById('packScrim').onclick = closePack;
+  document.getElementById('packCopy').onclick = () => {
+    const fallback = () => {
+      const r = document.createRange(); r.selectNodeContents(document.getElementById('packBody'));
+      const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+      packMsg('Copy was blocked here. The pack text is selected: press Ctrl+C.');
+    };
+    try { navigator.clipboard.writeText(packMd).then(() => packMsg('Copied as Markdown.'), fallback); } catch { fallback(); }
+  };
+  document.getElementById('packDownload').onclick = () => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([packMd], { type: 'text/markdown' }));
+    a.download = 'Handover - ' + sysById[packSys].name + '.md';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    packMsg('Download started. If nothing appears, use Copy instead; this viewer may block downloads.');
+  };
+  document.getElementById('packPrint').onclick = () => {
+    document.body.classList.add('printing');
+    try { window.print(); } catch { /* ignore */ }
+    setTimeout(() => document.body.classList.remove('printing'), 500);
+  };
 
   const themeKey = 'sm:theme';
   const saved = store.get(themeKey);

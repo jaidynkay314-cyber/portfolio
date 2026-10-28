@@ -2,6 +2,18 @@
 window.SOLMAP = {
   schemaVersion: 1,
   updated: "2026-10-28",
+  ownership: {
+    defaultOwner: "Tool builder",
+    byKind: { flow: { runsAs: "Builder's own account" }, external: { owner: "External system" } },
+    nodes: { "costing": { owner: "Estimating team" }, "fin-books": { owner: "Account managers" }, "fin-actuals": { owner: "Finance" }, "erp": { owner: "IT" }, "cad": { owner: "Engineering" } }
+  },
+  risks: {
+    "q-costing": ["Margin security depends entirely on this library's permissions"],
+    "f-parse": ["Lookups need indexed columns past 5,000 rows"],
+    "builder": ["Pricing logic is visible in the page source; control distribution"],
+    "qc-flows": ["Test recipients still in place for go-live"],
+    "fin-actuals": ["Relies on files being named correctly"]
+  },
   systems: [
     { id: "quote", name: "Quoting system", dept: "Estimating" },
     { id: "parts", name: "Parts tooling", dept: "Estimating" },
